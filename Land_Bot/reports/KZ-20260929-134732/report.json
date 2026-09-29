@@ -1,0 +1,23 @@
+{
+    "track_number": "KZ-20260929-134732",
+    "user_id": 1308574470,
+    "username": "saqqwas",
+    "problem_type": "🏗 Стройка",
+    "status": "🔵 Назначен выезд инспектора",
+    "status_code": "visit",
+    "description": "истоша 200",
+    "latitude": 20.659324,
+    "longitude": -11.406255,
+    "photo": "photo.jpg",
+    "created_at": "29.09.2026 13:47:44",
+    "history": [
+        {
+            "status": "🟡 На рассмотрении",
+            "date": "29.09.2026 13:47:44"
+        },
+        {
+            "status": "🔵 Назначен выезд инспектора",
+            "date": "29.09.2026 13:49:55"
+        }
+    ]
+}

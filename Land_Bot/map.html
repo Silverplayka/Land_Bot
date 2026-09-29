@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Цифровой мониторинг земель</title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #07130d;
+            color: white;
+            overflow: hidden;
+        }
+
+        #map {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
+
+        /* ==========================================
+           БОКОВАЯ ПАНЕЛЬ
+        ========================================== */
+
+        .panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+
+            width: 360px;
+            max-height: calc(100vh - 40px);
+
+            padding: 20px;
+
+            background: rgba(5, 25, 17, 0.94);
+            backdrop-filter: blur(15px);
+
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+
+            box-shadow: 0 15px 50px rgba(0,0,0,0.45);
+
+            z-index: 1000;
+
+            overflow-y: auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #159447;
+            border-radius: 12px;
+
+            font-size: 23px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .subtitle {
+            color: #9db6a6;
+            font-size: 12px;
+            margin-bottom: 18px;
+        }
+
+        /* ==========================================
+           СТАТИСТИКА
+        ========================================== */
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            padding: 10px 5px;
+
+            text-align: center;
+
+            background: rgba(255,255,255,0.06);
+            border-radius: 12px;
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .stat-name {
+            font-size: 10px;
+            color: #9db6a6;
+            margin-top: 4px;
+        }
+
+        /* ==========================================
+           ПОИСК
+        ========================================== */
+
+        .search {
+            width: 100%;
+
+            padding: 11px 12px;
+
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+
+            background: rgba(255,255,255,0.07);
+            color: white;
+
+            outline: none;
+
+            margin-bottom: 15px;
+        }
+
+        .search::placeholder {
+            color: #8ea196;
+        }
+
+        /* ==========================================
+           ФИЛЬТРЫ
+        ========================================== */
+
+        .filter-title {
+            font-size: 13px;
+            font-weight: bold;
+
+            margin: 14px 0 8px;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .filter-btn {
+            border: 1px solid rgba(255,255,255,0.12);
+
+            background: rgba(255,255,255,0.06);
+
+            color: white;
+
+            padding: 7px 9px;
+
+            border-radius: 9px;
+
+            cursor: pointer;
+
+            font-size: 11px;
+
+            transition: 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .filter-btn.active {
+            background: #159447;
+            border-color: #159447;
+        }
+
+        /* ==========================================
+           КНОПКИ
+        ========================================== */
+
+        .buttons {
+            display: flex;
+            gap: 7px;
+
+            margin: 15px 0;
+        }
+
+        .main-btn {
+            flex: 1;
+
+            padding: 10px;
+
+            border: none;
+            border-radius: 10px;
+
+            background: #159447;
+            color: white;
+
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .main-btn:hover {
+            background: #1bad55;
+        }
+
+        .secondary-btn {
+            flex: 1;
+
+            padding: 10px;
+
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+
+            background: rgba(255,255,255,0.07);
+            color: white;
+
+            cursor: pointer;
+        }
+
+        /* ==========================================
+           СПИСОК
+        ========================================== */
+
+        .reports-title {
+            font-size: 13px;
+            font-weight: bold;
+
+            margin-bottom: 8px;
+        }
+
+        .report-card {
+            padding: 11px;
+            margin-bottom: 8px;
+
+            background: rgba(255,255,255,0.055);
+
+            border: 1px solid rgba(255,255,255,0.08);
+
+            border-radius: 12px;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        .report-card:hover {
+            background: rgba(255,255,255,0.11);
+            transform: translateY(-1px);
+        }
+
+        .report-number {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .report-category {
+            font-size: 11px;
+            color: #b9d7c3;
+            margin-top: 4px;
+        }
+
+        .report-status {
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        .report-date {
+            font-size: 10px;
+            color: #82948a;
+            margin-top: 5px;
+        }
+
+        /* ==========================================
+           LEAFLET POPUP
+        ========================================== */
+
+        .leaflet-popup-content-wrapper {
+            background: #10251a;
+            color: white;
+
+            border-radius: 14px;
+        }
+
+        .leaflet-popup-tip {
+            background: #10251a;
+        }
+
+        .popup {
+            min-width: 250px;
+        }
+
+        .popup h3 {
+            margin: 0 0 8px;
+            font-size: 15px;
+        }
+
+        .popup-row {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        .popup img {
+            width: 100%;
+            max-height: 180px;
+
+            object-fit: cover;
+
+            border-radius: 10px;
+
+            margin-top: 8px;
+        }
+
+        /* ==========================================
+           TOOLTIP
+        ========================================== */
+
+        .report-tooltip {
+            background: #10251a !important;
+            color: white !important;
+
+            border: 1px solid rgba(255,255,255,0.15) !important;
+
+            border-radius: 12px !important;
+
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+
+            padding: 8px !important;
+        }
+
+        .report-tooltip:before {
+            border-top-color: #10251a !important;
+        }
+
+        .tooltip-content {
+            width: 260px;
+        }
+
+        .tooltip-title {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .tooltip-row {
+            font-size: 11px;
+            margin: 3px 0;
+        }
+
+        .tooltip-content img {
+            width: 100%;
+            height: 130px;
+
+            object-fit: cover;
+
+            border-radius: 8px;
+
+            margin-top: 7px;
+        }
+
+        /* ==========================================
+           СТАТУС
+        ========================================== */
+
+        .status-dot {
+            display: inline-block;
+
+            width: 8px;
+            height: 8px;
+
+            border-radius: 50%;
+
+            margin-right: 4px;
+        }
+
+        .status-review {
+            background: #ffd43b;
+        }
+
+        .status-visit {
+            background: #339af0;
+        }
+
+        .status-approved {
+            background: #37b24d;
+        }
+
+        .status-rejected {
+            background: #fa5252;
+        }
+
+        /* ==========================================
+           МОБИЛЬНАЯ ВЕРСИЯ
+        ========================================== */
+
+        @media (max-width: 700px) {
+
+            .panel {
+                left: 10px;
+                right: 10px;
+
+                top: 10px;
+
+                width: auto;
+
+                max-height: 55vh;
+            }
+
+            .stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .tooltip-content {
+                width: 220px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+
+<!-- ==========================================
+     ПАНЕЛЬ
+========================================== -->
+
+<div class="panel">
+
+    <div class="logo">
+
+        <div class="logo-icon">
+            🌍
+        </div>
+
+        <div>
+            <h1>Цифровой мониторинг земель</h1>
+        </div>
+
+    </div>
+
+    <div class="subtitle">
+        Интерактивная карта обращений населения
+    </div>
+
+
+    <!-- СТАТИСТИКА -->
+
+    <div class="stats">
+
+        <div class="stat">
+
+            <div
+                class="stat-number"
+                id="totalCount"
+            >
+                0
+            </div>
+
+            <div class="stat-name">
+                Всего
+            </div>
+
+        </div>
+
+
+        <div class="stat">
+
+            <div
+                class="stat-number"
+                id="waitingCount"
+            >
+                0
+            </div>
+
+            <div class="stat-name">
+                На рассмотрении
+            </div>
+
+        </div>
+
+
+        <div class="stat">
+
+            <div
+                class="stat-number"
+                id="solvedCount"
+            >
+                0
+            </div>
+
+            <div class="stat-name">
+                Решено
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ПОИСК -->
+
+    <input
+        type="text"
+        id="search"
+        class="search"
+        placeholder="🔎 Поиск по номеру или описанию..."
+    >
+
+
+    <!-- КАТЕГОРИИ -->
+
+    <div class="filter-title">
+        🏷 Категория
+    </div>
+
+    <div class="filters">
+
+        <button
+            class="filter-btn active"
+            data-category="all"
+        >
+            Все
+        </button>
+
+        <button
+            class="filter-btn"
+            data-category="🏗 Стройка"
+        >
+            🏗 Стройка
+        </button>
+
+        <button
+            class="filter-btn"
+            data-category="🚧 Захват земли"
+        >
+            🚧 Захват
+        </button>
+
+        <button
+            class="filter-btn"
+            data-category="🌱 Неиспользование"
+        >
+            🌱 Неиспользование
+        </button>
+
+        <button
+            class="filter-btn"
+            data-category="🗑 Свалка"
+        >
+            🗑 Свалка
+        </button>
+
+        <button
+            class="filter-btn"
+            data-category="📐 Границы"
+        >
+            📐 Границы
+        </button>
+
+        <button
+            class="filter-btn"
+            data-category="📌 Другое"
+        >
+            📌 Другое
+        </button>
+
+    </div>
+
+
+    <!-- СТАТУСЫ -->
+
+    <div class="filter-title">
+        📊 Статус
+    </div>
+
+    <div class="filters">
+
+        <button
+            class="filter-btn active"
+            data-status="all"
+        >
+            Все
+        </button>
+
+        <button
+            class="filter-btn"
+            data-status="🟡 На рассмотрении"
+        >
+            🟡 Рассмотрение
+        </button>
+
+        <button
+            class="filter-btn"
+            data-status="🔵 Назначен выезд инспектора"
+        >
+            🔵 Выезд
+        </button>
+
+        <button
+            class="filter-btn"
+            data-status="🟢 Решено"
+        >
+            🟢 Решено
+        </button>
+
+        <button
+            class="filter-btn"
+            data-status="🔴 Отказ"
+        >
+            🔴 Отказ
+        </button>
+
+    </div>
+
+
+    <!-- КНОПКИ -->
+
+    <div class="buttons">
+
+        <button
+            class="main-btn"
+            onclick="showAllPoints()"
+        >
+            📍 Все точки
+        </button>
+
+        <button
+            class="secondary-btn"
+            onclick="loadReports()"
+        >
+            🔄 Обновить
+        </button>
+
+    </div>
+
+
+    <!-- СПИСОК -->
+
+    <div class="reports-title">
+        📋 Обращения
+    </div>
+
+    <div id="reportsList"></div>
+
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+<script>
+
+    // =====================================================
+    // КАРТА
+    // =====================================================
+
+    const map = L.map("map", {
+        zoomControl: true
+    }).setView(
+        [42.9000, 71.3667],
+        12
+    );
+
+
+    // =====================================================
+    // СПУТНИК
+    // =====================================================
+
+    const satellite = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+            maxZoom: 19,
+            attribution:
+                "Tiles © Esri"
+        }
+    );
+
+
+    // =====================================================
+    // ОБЫЧНАЯ КАРТА
+    // =====================================================
+
+    const normalMap = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                "© OpenStreetMap"
+        }
+    );
+
+
+    // По умолчанию спутник
+
+    satellite.addTo(map);
+
+
+    // Переключатель карт
+
+    L.control.layers(
+        {
+            "🛰 Спутник": satellite,
+            "🗺 Обычная": normalMap
+        },
+        null,
+        {
+            position: "topright"
+        }
+    ).addTo(map);
+
+
+    // =====================================================
+    // ДАННЫЕ
+    // =====================================================
+
+    let reports = [];
+
+    let markers = {};
+
+    let categoryFilter = "all";
+
+    let statusFilter = "all";
+
+    let searchText = "";
+
+
+    // =====================================================
+    // СТАТУС
+    // =====================================================
+
+    function getStatusClass(status) {
+
+        if (
+            status === "🟡 На рассмотрении"
+        ) {
+            return "status-review";
+        }
+
+        if (
+            status === "🔵 Назначен выезд инспектора"
+        ) {
+            return "status-visit";
+        }
+
+        if (
+            status === "🟢 Решено"
+        ) {
+            return "status-approved";
+        }
+
+        if (
+            status === "🔴 Отказ"
+        ) {
+            return "status-rejected";
+        }
+
+        return "status-review";
+    }
+
+
+    // =====================================================
+    // ЦВЕТ ТОЧКИ
+    // =====================================================
+
+    function getMarkerColor(status) {
+
+        if (
+            status === "🟡 На рассмотрении"
+        ) {
+            return "#ffd43b";
+        }
+
+        if (
+            status === "🔵 Назначен выезд инспектора"
+        ) {
+            return "#339af0";
+        }
+
+        if (
+            status === "🟢 Решено"
+        ) {
+            return "#37b24d";
+        }
+
+        if (
+            status === "🔴 Отказ"
+        ) {
+            return "#fa5252";
+        }
+
+        return "#ffd43b";
+    }
+
+
+    // =====================================================
+    // СОЗДАНИЕ МАРКЕРА
+    // =====================================================
+
+    function createMarkerIcon(status) {
+
+        const color = getMarkerColor(
+            status
+        );
+
+        return L.divIcon({
+
+            className: "",
+
+            html: `
+                <div style="
+                    width:24px;
+                    height:24px;
+                    border-radius:50%;
+                    background:${color};
+                    border:3px solid white;
+                    box-shadow:0 3px 12px rgba(0,0,0,0.6);
+                "></div>
+            `,
+
+            iconSize: [24, 24],
+
+            iconAnchor: [12, 12],
+
+            popupAnchor: [0, -12]
+        });
+    }
+
+
+    // =====================================================
+    // TOOLTIP
+    // =====================================================
+
+    function createTooltip(report) {
+
+        const photo = report.photo_url
+            ? `
+                <img
+                    src="${report.photo_url}"
+                    alt="Фото нарушения"
+                >
+            `
+            : "";
+
+        return `
+
+            <div class="tooltip-content">
+
+                <div class="tooltip-title">
+                    ${report.problem_type || "📌 Другое"}
+                </div>
+
+                <div class="tooltip-row">
+                    📌 <b>Номер:</b>
+                    ${report.track_number || "-"}
+                </div>
+
+                <div class="tooltip-row">
+                    📊 <b>Статус:</b>
+                    ${report.status || "-"}
+                </div>
+
+                <div class="tooltip-row">
+                    📅 <b>Дата:</b>
+                    ${report.created_at || "-"}
+                </div>
+
+                <div class="tooltip-row">
+                    📍 <b>Координаты:</b>
+                    ${report.latitude},
+                    ${report.longitude}
+                </div>
+
+                <div class="tooltip-row">
+                    📝 <b>Описание:</b>
+                    ${report.description || "-"}
+                </div>
+
+                ${photo}
+
+            </div>
+        `;
+    }
+
+
+    // =====================================================
+    // POPUP
+    // =====================================================
+
+    function createPopup(report) {
+
+        const photo = report.photo_url
+            ? `
+                <img
+                    src="${report.photo_url}"
+                    alt="Фото"
+                >
+            `
+            : "";
+
+        return `
+
+            <div class="popup">
+
+                <h3>
+                    ${report.problem_type || "📌 Другое"}
+                </h3>
+
+                <div class="popup-row">
+                    📌 <b>Номер:</b>
+                    ${report.track_number || "-"}
+                </div>
+
+                <div class="popup-row">
+                    📊 <b>Статус:</b>
+                    ${report.status || "-"}
+                </div>
+
+                <div class="popup-row">
+                    📅 <b>Дата:</b>
+                    ${report.created_at || "-"}
+                </div>
+
+                <div class="popup-row">
+                    📍 <b>Широта:</b>
+                    ${report.latitude}
+                </div>
+
+                <div class="popup-row">
+                    📍 <b>Долгота:</b>
+                    ${report.longitude}
+                </div>
+
+                <div class="popup-row">
+                    📝 <b>Описание:</b><br>
+                    ${report.description || "-"}
+                </div>
+
+                ${photo}
+
+            </div>
+
+        `;
+    }
+
+
+    // =====================================================
+    // ПРОВЕРКА ФИЛЬТРОВ
+    // =====================================================
+
+    function matchesFilters(report) {
+
+        const categoryOk =
+            categoryFilter === "all" ||
+            report.problem_type === categoryFilter;
+
+
+        const statusOk =
+            statusFilter === "all" ||
+            report.status === statusFilter;
+
+
+        const text =
+            (
+                (report.track_number || "") +
+                " " +
+                (report.description || "") +
+                " " +
+                (report.problem_type || "")
+            ).toLowerCase();
+
+
+        const searchOk =
+            !searchText ||
+            text.includes(
+                searchText.toLowerCase()
+            );
+
+
+        return (
+            categoryOk &&
+            statusOk &&
+            searchOk
+        );
+    }
+
+
+    // =====================================================
+    // ОТОБРАЖЕНИЕ ТОЧЕК
+    // =====================================================
+
+    function renderMap() {
+
+        // Удаляем старые маркеры
+
+        Object.values(markers).forEach(
+            marker => map.removeLayer(marker)
+        );
+
+        markers = {};
+
+
+        const visibleReports =
+            reports.filter(
+                matchesFilters
+            );
+
+
+        visibleReports.forEach(
+            report => {
+
+                const lat =
+                    parseFloat(
+                        report.latitude
+                    );
+
+                const lng =
+                    parseFloat(
+                        report.longitude
+                    );
+
+
+                if (
+                    Number.isNaN(lat) ||
+                    Number.isNaN(lng)
+                ) {
+                    return;
+                }
+
+
+                const marker =
+                    L.marker(
+                        [lat, lng],
+                        {
+                            icon:
+                                createMarkerIcon(
+                                    report.status
+                                )
+                        }
+                    );
+
+
+                // Наведение
+
+                marker.bindTooltip(
+                    createTooltip(report),
+                    {
+                        direction: "top",
+
+                        offset: [0, -15],
+
+                        opacity: 1,
+
+                        className:
+                            "report-tooltip",
+
+                        sticky: true,
+
+                        interactive: true
+                    }
+                );
+
+
+                // Нажатие
+
+                marker.bindPopup(
+                    createPopup(report),
+                    {
+                        maxWidth: 350
+                    }
+                );
+
+
+                marker.addTo(map);
+
+
+                markers[
+                    report.track_number
+                ] = marker;
+
+            }
+        );
+
+
+        updateList(
+            visibleReports
+        );
+
+
+        updateStats();
+    }
+
+
+    // =====================================================
+    // СПИСОК
+    // =====================================================
+
+    function updateList(
+        visibleReports
+    ) {
+
+        const list =
+            document.getElementById(
+                "reportsList"
+            );
+
+
+        if (
+            visibleReports.length === 0
+        ) {
+
+            list.innerHTML = `
+
+                <div style="
+                    padding:15px;
+                    text-align:center;
+                    color:#8ea196;
+                    font-size:12px;
+                ">
+
+                    Обращений не найдено.
+
+                </div>
+
+            `;
+
+            return;
+        }
+
+
+        list.innerHTML =
+            visibleReports
+            .map(
+                report => `
+
+                    <div
+                        class="report-card"
+                        onclick="
+                            focusReport(
+                                '${report.track_number}'
+                            )
+                        "
+                    >
+
+                        <div class="report-number">
+                            📌
+                            ${report.track_number}
+                        </div>
+
+                        <div class="report-category">
+                            ${report.problem_type || "📌 Другое"}
+                        </div>
+
+                        <div class="report-status">
+
+                            <span
+                                class="status-dot
+                                ${getStatusClass(report.status)}"
+                            ></span>
+
+                            ${report.status || "-"}
+
+                        </div>
+
+                        <div class="report-date">
+                            📅
+                            ${report.created_at || "-"}
+                        </div>
+
+                    </div>
+
+                `
+            )
+            .join("");
+    }
+
+
+    // =====================================================
+    // СТАТИСТИКА
+    // =====================================================
+
+    function updateStats() {
+
+        const total =
+            reports.length;
+
+
+        const waiting =
+            reports.filter(
+                r =>
+                    r.status ===
+                    "🟡 На рассмотрении"
+            ).length;
+
+
+        const solved =
+            reports.filter(
+                r =>
+                    r.status ===
+                        "🟢 Решено" ||
+                    r.status ===
+                        "🔴 Отказ"
+            ).length;
+
+
+        document.getElementById(
+            "totalCount"
+        ).textContent = total;
+
+
+        document.getElementById(
+            "waitingCount"
+        ).textContent = waiting;
+
+
+        document.getElementById(
+            "solvedCount"
+        ).textContent = solved;
+    }
+
+
+    // =====================================================
+    // ФОКУС НА ОБРАЩЕНИИ
+    // =====================================================
+
+    function focusReport(
+        trackNumber
+    ) {
+
+        const marker =
+            markers[trackNumber];
+
+
+        if (!marker) {
+            return;
+        }
+
+
+        map.flyTo(
+            marker.getLatLng(),
+            17,
+            {
+                duration: 1
+            }
+        );
+
+
+        setTimeout(
+            () => {
+                marker.openPopup();
+            },
+            700
+        );
+    }
+
+
+    // =====================================================
+    // ВСЕ ТОЧКИ
+    // =====================================================
+
+    function showAllPoints() {
+
+        const visible =
+            reports.filter(
+                matchesFilters
+            );
+
+
+        if (
+            visible.length === 0
+        ) {
+            return;
+        }
+
+
+        const bounds =
+            L.latLngBounds(
+                visible.map(
+                    report => [
+                        parseFloat(
+                            report.latitude
+                        ),
+                        parseFloat(
+                            report.longitude
+                        )
+                    ]
+                )
+            );
+
+
+        map.fitBounds(
+            bounds,
+            {
+                padding: [50, 50]
+            }
+        );
+    }
+
+
+    // =====================================================
+    // ЗАГРУЗКА ОБРАЩЕНИЙ
+    // =====================================================
+
+    async function loadReports() {
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/reports?_=" +
+                    Date.now()
+                );
+
+
+            if (!response.ok) {
+                throw new Error(
+                    "Ошибка сервера"
+                );
+            }
+
+
+            const newReports =
+                await response.json();
+
+
+            // Проверяем новые точки
+
+            if (
+                reports.length > 0 &&
+                newReports.length > reports.length
+            ) {
+
+                const oldNumbers =
+                    reports.map(
+                        r => r.track_number
+                    );
+
+
+                const newReport =
+                    newReports.find(
+                        r =>
+                            !oldNumbers.includes(
+                                r.track_number
+                            )
+                    );
+
+
+                if (newReport) {
+
+                    setTimeout(
+                        () => {
+
+                            const lat =
+                                parseFloat(
+                                    newReport.latitude
+                                );
+
+                            const lng =
+                                parseFloat(
+                                    newReport.longitude
+                                );
+
+
+                            if (
+                                !Number.isNaN(lat) &&
+                                !Number.isNaN(lng)
+                            ) {
+
+                                map.flyTo(
+                                    [lat, lng],
+                                    17,
+                                    {
+                                        duration: 1.5
+                                    }
+                                );
+
+                            }
+
+                        },
+                        500
+                    );
+                }
+            }
+
+
+            reports =
+                newReports;
+
+
+            renderMap();
+
+
+        } catch (error) {
+
+            console.error(
+                "Ошибка загрузки:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // ФИЛЬТР КАТЕГОРИЙ
+    // =====================================================
+
+    document
+        .querySelectorAll(
+            "[data-category]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        document
+                            .querySelectorAll(
+                                "[data-category]"
+                            )
+                            .forEach(
+                                b =>
+                                    b.classList
+                                     .remove("active")
+                            );
+
+
+                        button.classList
+                            .add("active");
+
+
+                        categoryFilter =
+                            button.dataset.category;
+
+
+                        renderMap();
+
+                    }
+                );
+
+            }
+        );
+
+
+    // =====================================================
+    // ФИЛЬТР СТАТУСОВ
+    // =====================================================
+
+    document
+        .querySelectorAll(
+            "[data-status]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        document
+                            .querySelectorAll(
+                                "[data-status]"
+                            )
+                            .forEach(
+                                b =>
+                                    b.classList
+                                     .remove("active")
+                            );
+
+
+                        button.classList
+                            .add("active");
+
+
+                        statusFilter =
+                            button.dataset.status;
+
+
+                        renderMap();
+
+                    }
+                );
+
+            }
+        );
+
+
+    // =====================================================
+    // ПОИСК
+    // =====================================================
+
+    document
+        .getElementById("search")
+        .addEventListener(
+            "input",
+            function() {
+
+                searchText =
+                    this.value.trim();
+
+                renderMap();
+
+            }
+        );
+
+
+    // =====================================================
+    // ПЕРВИЧНАЯ ЗАГРУЗКА
+    // =====================================================
+
+    loadReports();
+
+
+    // =====================================================
+    // АВТООБНОВЛЕНИЕ
+    // =====================================================
+
+    setInterval(
+        loadReports,
+        3000
+    );
+
+</script>
+
+</body>
+</html>
